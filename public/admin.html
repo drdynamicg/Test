@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>...</head>
+<body>
+  <div class="wall-container">
+    <h2>Admin Panel</h2>
+    <input type="password" id="adminToken" placeholder="Admin Token">
+    <button id="loginBtn" class="btn btn-accent">Login</button>
+    <div id="pendingList"></div>
+  </div>
+  <script>
+    let token = '';
+    document.getElementById('loginBtn').onclick = () => {
+      token = document.getElementById('adminToken').value;
+      loadPending();
+    };
+    async function loadPending() {
+      const res = await fetch('/api/admin/pending', { headers: { 'Authorization': `Bearer ${token}` } });
+      const pending = await res.json();
+      let html = '<h3>Pending Uploads</h3>';
+      for (const p of pending) {
+        html += `<div style="border:1px solid var(--border); margin:20px; padding:15px;">
+          <p><strong>${escapeHtml(p.uploader_name)}</strong> (${p.uploader_email})</p>
+          <p>Resolution: ${p.original_width}px</p>
+          <form class="approveForm" data-id="${p.id}" enctype="multipart/form-data">
+            <input type="text" name="title" placeholder="Title" required><br>
+            <label>Upscaled image (optional):</label><input type="file" name="upscaled_image" accept="image/jpeg,image/png"><br>
+            <button type="submit" class="btn btn-sm btn-accent">Approve</button>
+            <button type="button" class="rejectBtn btn btn-sm btn-ghost" data-id="${p.id}">Reject</button>
+          </form>
+        </div>`;
+      }
+      document.getElementById('pendingList').innerHTML = html;
+
+      <a href="/admin-taxonomy.html" class="btn btn-ghost">Manage Categories/Tags</a>
+
+      
+      // bind approve forms
+      document.querySelectorAll('.approveForm').forEach(form => {
+        form.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const fd = new FormData(form);
+          const id = form.dataset.id;
+          const res = await fetch(`/api/admin/approve/${id}`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` }, body: fd });
+          if (res.ok) loadPending();
+        });
+      });
+      document.querySelectorAll('.rejectBtn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const id = btn.dataset.id;
+          await fetch(`/api/admin/reject/${id}`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } });
+          loadPending();
+        });
+      });
+    }
+    function escapeHtml(str) { /* ... */ }
+  </script>
+</body>
+</html>

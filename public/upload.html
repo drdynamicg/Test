@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Upload Wallpaper – AniWall</title>
+  <link rel="stylesheet" href="/global.css">
+  <script>window.adsensePublisherId = 'ca-pub-XXXXXXXXXXXXXXXX';</script>
+  <script src="/ads.js" defer></script>
+  <script src="/auth.js" defer></script>
+  <style>
+    .upload-container { max-width: 600px; margin: 40px auto; background: var(--bg1); padding: 30px; border-radius: var(--radius-lg); }
+    .login-prompt { text-align: center; padding: 40px; }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-brand"><a href="/">Ani<span>Wall</span></a></div>
+    <div class="nav-right">
+      <div id="userArea"></div>
+    </div>
+  </nav>
+  <div class="ad-header" id="headerAd"></div>
+  <div id="uploadContainer" class="upload-container">
+    <div id="uploadContent">Loading...</div>
+  </div>
+  <div class="ad-footer" id="footerAd"></div>
+  <footer class="site-footer">...</footer>
+
+  <script>
+    (async function() {
+      // Wait for auth check
+      await new Promise(resolve => setTimeout(resolve, 200));
+      const res = await fetch('/api/me');
+      const user = await res.json();
+
+      const uploadDiv = document.getElementById('uploadContent');
+      if (!user.authenticated) {
+        uploadDiv.innerHTML = `
+          <div class="login-prompt">
+            <h2>You must be logged in to upload wallpapers</h2>
+            <a href="/auth/login" class="btn btn-accent">Login with Google</a>
+          </div>
+        `;
+        return;
+      }
+
+      // User is logged in – show upload form
+      uploadDiv.innerHTML = `
+        <h2>Submit a Wallpaper</h2>
+        <p>Logged in as <strong>${escapeHtml(user.name)}</strong> (${user.email})</p>
+        <form id="uploadForm" enctype="multipart/form-data">
+          <div class="form-group">
+            <label>Image (min 1080p, max 50MB)</label>
+            <input type="file" name="image" accept="image/jpeg,image/png,image/webp" required>
+          </div>
+          <button type="submit" class="btn btn-accent">Submit for Review</button>
+        </form>
+        <div id="uploadResult"></div>
+      `;
+
+      document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const fd = new FormData(e.target);
+        // Do NOT include email/name fields – backend will use session.
+        const submitRes = await fetch('/api/upload', { method: 'POST', body: fd });
+        const data = await submitRes.json();
+        const resultDiv = document.getElementById('uploadResult');
+        if (submitRes.ok) {
+          resultDiv.innerHTML = '<p class="text-accent">✓ Submitted! Admin will review soon.</p>';
+          e.target.reset();
+        } else {
+          resultDiv.innerHTML = `<p class="text-muted">❌ Error: ${data.error || 'Submission failed'}</p>`;
+        }
+      });
+    })();
+
+    function escapeHtml(str) {
+      return str.replace(/[&<>]/g, m => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' }[m]));
+    }
+  </script>
+</body>
+</html>

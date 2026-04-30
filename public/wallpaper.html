@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AniWall – Wallpaper</title>
+  <link rel="stylesheet" href="/global.css">
+  <script>window.adsensePublisherId = 'ca-pub-XXXXXXXXXXXXXXXX';</script>
+  <script src="/ads.js" defer></script>
+</head>
+<body>
+  <nav class="nav">...</nav> <!-- same as index.html -->
+  <div class="ad-header" id="headerAd"></div>
+  <script>insertAd('headerAd', 'HEADER_AD_SLOT', 'horizontal');</script>
+  <div class="single-wallpaper" id="singleContent">Loading...</div>
+  <div class="ad-footer" id="footerAd"></div>
+  <script>insertAd('footerAd', 'FOOTER_AD_SLOT', 'auto');</script>
+  <footer class="site-footer">...</footer>
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const slug = params.get('slug');
+    if (slug) {
+      fetch(`/api/wallpapers/${slug}`)
+        .then(res => res.json())
+        .then(w => {
+          const resolutionClass = w.original_width >= 7680 ? 'badge-8k' : (w.original_width >= 3840 ? 'badge-4k' : (w.original_width >= 2560 ? 'badge-2k' : 'badge-1080p'));
+          const resolutionLabel = resolutionClass.split('-')[1].toUpperCase();
+          let html = `<div class="wall-badge wall-badge--inline ${resolutionClass}">${resolutionLabel}</div>
+            <h1>${escapeHtml(w.title)}</h1>
+            <img class="wallpaper-full" src="/api/download/${w.id}/4k" alt="${escapeHtml(w.title)}">
+            <div class="dl-section">
+              <div class="dl-label">Download Resolution</div>
+              <div class="dl-grid">
+                <a href="#" data-size="1080p" class="dl-card"><div class="dl-res">1080p</div><div class="dl-dim">1920×1080</div></a>
+                <a href="#" data-size="2k" class="dl-card"><div class="dl-res">2K</div><div class="dl-dim">2560×1440</div></a>
+                <a href="#" data-size="4k" class="dl-card"><div class="dl-res">4K</div><div class="dl-dim">3840×2160</div></a>
+                <a href="#" data-size="8k" class="dl-card"><div class="dl-res">8K</div><div class="dl-dim">7680×4320</div></a>
+                <a href="/api/download/${w.id}/original" class="dl-card dl-card-original"><div class="dl-res">Original</div><div class="dl-dim">Full Resolution</div></a>
+              </div>
+            </div>
+            <div class="wallpaper-meta-info">${w.categories.map(c => `<div class="meta-row"><strong>Category:</strong> <a href="/?cat=${c.slug}">${escapeHtml(c.name)}</a></div>`).join('')}
+            ${w.tags.length ? `<div class="meta-row"><strong>Tags:</strong> ${w.tags.map(t => `<a href="/?tag=${t.slug}">${escapeHtml(t.name)}</a>`).join(', ')}</div>` : ''}</div>
+            <button class="btn btn-ghost report-btn" id="reportBtn">🚨 Report this wallpaper</button>`;
+          document.getElementById('singleContent').innerHTML = html;
+          // Download links with signed URLs
+          document.querySelectorAll('.dl-card[data-size]').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+              e.preventDefault();
+              const size = btn.dataset.size;
+              const res = await fetch(`/api/download/${w.id}/${size}`);
+              const data = await res.json();
+              window.location.href = data.url;
+            });
+          });
+          // Report modal (reuse from original)
+        });
+    }
+    function escapeHtml(str) { /* same as before */ }
+  </script>
+</body>
+</html>

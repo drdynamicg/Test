@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin – Taxonomy Manager | AniWall</title>
+  <link rel="stylesheet" href="/global.css">
+  <style>
+    .admin-container { max-width: 1200px; margin: 40px auto; padding: 0 20px; }
+    .taxonomy-section { background: var(--bg1); border-radius: var(--radius-lg); padding: 20px; margin-bottom: 30px; border: 1px solid var(--border); }
+    .taxonomy-section h2 { margin-bottom: 20px; color: var(--accent); }
+    .taxonomy-form { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; align-items: flex-end; }
+    .taxonomy-form .form-group { flex: 1; min-width: 150px; }
+    .taxonomy-list { list-style: none; padding: 0; }
+    .taxonomy-list li { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid var(--border2); }
+    .taxonomy-list li .item-actions button { margin-left: 8px; }
+    .edit-form { display: inline-flex; gap: 8px; align-items: center; }
+    .inline-input { background: var(--bg2); border: 1px solid var(--border2); color: var(--text); padding: 4px 8px; border-radius: var(--radius); }
+    .message { margin-top: 10px; padding: 10px; border-radius: var(--radius); }
+    .message.success { background: rgba(100,200,100,0.2); color: #8f8; }
+    .message.error { background: rgba(200,100,100,0.2); color: #f88; }
+    .nav-links { margin-bottom: 20px; display: flex; gap: 15px; }
+    .nav-links a { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-brand"><a href="/">Ani<span>Wall</span></a></div>
+    <div class="nav-right">
+      <a href="/admin.html" class="btn btn-ghost btn-sm">Pending Uploads</a>
+      <a href="/admin-taxonomy.html" class="btn btn-accent btn-sm">Taxonomy Manager</a>
+    </div>
+  </nav>
+  <div class="admin-container">
+    <h1>Taxonomy Manager</h1>
+    <div class="nav-links">
+      <a href="#categories">Categories</a> |
+      <a href="#tags">Tags</a> |
+      <a href="#collections">Collections</a>
+    </div>
+
+    <!-- Categories Section -->
+    <div class="taxonomy-section" id="categories">
+      <h2>📁 Categories</h2>
+      <div class="taxonomy-form">
+        <div class="form-group">
+          <label>Name</label>
+          <input type="text" id="catName" class="form-input" placeholder="e.g., Anime">
+        </div>
+        <div class="form-group">
+          <label>Slug</label>
+          <input type="text" id="catSlug" class="form-input" placeholder="anime">
+        </div>
+        <div class="form-group">
+          <label>Parent ID (0 for root)</label>
+          <input type="number" id="catParent" class="form-input" value="0">
+        </div>
+        <button id="createCatBtn" class="btn btn-accent">Add Category</button>
+      </div>
+      <ul id="catList" class="taxonomy-list">Loading...</ul>
+      <div id="catMessage" class="message"></div>
+    </div>
+
+    <!-- Tags Section -->
+    <div class="taxonomy-section" id="tags">
+      <h2>🏷️ Tags</h2>
+      <div class="taxonomy-form">
+        <div class="form-group">
+          <label>Name</label>
+          <input type="text" id="tagName" class="form-input" placeholder="e.g., Nature">
+        </div>
+        <div class="form-group">
+          <label>Slug</label>
+          <input type="text" id="tagSlug" class="form-input" placeholder="nature">
+        </div>
+        <button id="createTagBtn" class="btn btn-accent">Add Tag</button>
+      </div>
+      <ul id="tagList" class="taxonomy-list">Loading...</ul>
+      <div id="tagMessage" class="message"></div>
+    </div>
+
+    <!-- Collections Section -->
+    <div class="taxonomy-section" id="collections">
+      <h2>📚 Collections</h2>
+      <div class="taxonomy-form">
+        <div class="form-group">
+          <label>Name</label>
+          <input type="text" id="colName" class="form-input" placeholder="e.g., Summer Vibes">
+        </div>
+        <div class="form-group">
+          <label>Slug</label>
+          <input type="text" id="colSlug" class="form-input" placeholder="summer-vibes">
+        </div>
+        <div class="form-group">
+          <label>Description</label>
+          <input type="text" id="colDesc" class="form-input" placeholder="Optional description">
+        </div>
+        <button id="createColBtn" class="btn btn-accent">Add Collection</button>
+      </div>
+      <ul id="colList" class="taxonomy-list">Loading...</ul>
+      <div id="colMessage" class="message"></div>
+    </div>
+  </div>
+
+  <script>
+    // --- Helper functions ---
+    let adminToken = localStorage.getItem('adminToken');
+    if (!adminToken) {
+      adminToken = prompt("Enter admin token:");
+      localStorage.setItem('adminToken', adminToken);
+    }
+
+    function apiFetch(path, options = {}) {
+      const headers = {
+        'Authorization': `Bearer ${adminToken}`,
+        'Content-Type': 'application/json',
+        ...options.headers
+      };
+      return fetch(path, { ...options, headers });
+    }
+
+    function showMessage(element, text, type = 'success') {
+      element.innerHTML = `<div class="message ${type}">${text}</div>`;
+      setTimeout(() => { element.innerHTML = ''; }, 3000);
+    }
+
+    // --- Categories ---
+    async function loadCategories() {
+      const res = await apiFetch('/api/admin/categories');
+      const cats = await res.json();
+      const list = document.getElementById('catList');
+      if (!list) return;
+      if (!cats.length) { list.innerHTML = '<li>No categories yet.</li>'; return; }
+      list.innerHTML = '';
+      for (const cat of cats) {
+        const li = document.createElement('li');
+        li.innerHTML = `
+          <span><strong>${escapeHtml(cat.name)}</strong> (${escapeHtml(cat.slug)}) ${cat.parent_id ? `[parent: ${cat.parent_id}]` : ''}</span>
+          <div class="item-actions">
+            <button class="btn btn-sm btn-ghost editCatBtn" data-id="${cat.id}" data-name="${escapeHtml(cat.name)}" data-slug="${escapeHtml(cat.slug)}" data-parent="${cat.parent_id || 0}">✏️</button>
+            <button class="btn btn-sm btn-ghost deleteCatBtn" data-id="${cat.id}">🗑️</button>
+          </div>
+        `;
+        list.appendChild(li);
+      }
+      // bind delete buttons
+      document.querySelectorAll('.deleteCatBtn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const id = btn.dataset.id;
+          if (confirm('Delete category?')) {
+            await apiFetch(`/api/admin/categories/${id}`, { method: 'DELETE' });
+            loadCategories();
+            showMessage(document.getElementById('catMessage'), 'Category deleted', 'success');
+          }
+        });
+      });
+      // bind edit buttons (simple inline edit prompt)
+      document.querySelectorAll('.editCatBtn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.dataset.id;
+          const oldName = btn.dataset.name;
+          const oldSlug = btn.dataset.slug;
+          const oldParent = btn.dataset.parent;
+          const newName = prompt('New name', oldName);
+          if (!newName) return;
+          const newSlug = prompt('New slug', oldSlug);
+          if (!newSlug) return;
+          const newParent = prompt('Parent ID (0 for root)', oldParent);
+          apiFetch(`/api/admin/categories/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify({ name: newName, slug: newSlug, parent_id: parseInt(newParent) || 0 })
+          }).then(() => {
+            loadCategories();
+            showMessage(document.getElementById('catMessage'), 'Category updated', 'success');
+          });
+        });
+      });
+    }
+
+    document.getElementById('createCatBtn')?.addEventListener('click', async () => {
+      const name = document.getElementById('catName').value.trim();
+      const slug = document.getElementById('catSlug').value.trim();
+      const parent_id = parseInt(document.getElementById('catParent').value) || 0;
+      if (!name || !slug) return alert('Name and slug required');
+      const res = await apiFetch('/api/admin/categories', {
+        method: 'POST',
+        body: JSON.stringify({ name, slug, parent_id: parent_id === 0 ? null : parent_id })
+      });
+      if (res.ok) {
+        document.getElementById('catName').value = '';
+        document.getElementById('catSlug').value = '';
+        document.getElementById('catParent').value = '0';
+        loadCategories();
+        showMessage(document.getElementById('catMessage'), 'Category added', 'success');
+      } else {
+        showMessage(document.getElementById('catMessage'), 'Error adding category', 'error');
+      }
+    });
+
+    // --- Tags ---
+    async function loadTags() {
+      const res = await apiFetch('/api/admin/tags');
+      const tags = await res.json();
+      const list = document.getElementById('tagList');
+      if (!list) return;
+      if (!tags.length) { list.innerHTML = '<li>No tags yet.</li>'; return; }
+      list.innerHTML = '';
+      for (const tag of tags) {
+        const li = document.createElement('li');
+        li.innerHTML = `
+          <span><strong>${escapeHtml(tag.name)}</strong> (${escapeHtml(tag.slug)})</span>
+          <div class="item-actions">
+            <button class="btn btn-sm btn-ghost editTagBtn" data-id="${tag.id}" data-name="${escapeHtml(tag.name)}" data-slug="${escapeHtml(tag.slug)}">✏️</button>
+            <button class="btn btn-sm btn-ghost deleteTagBtn" data-id="${tag.id}">🗑️</button>
+          </div>
+        `;
+        list.appendChild(li);
+      }
+      document.querySelectorAll('.deleteTagBtn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const id = btn.dataset.id;
+          if (confirm('Delete tag?')) {
+            await apiFetch(`/api/admin/tags/${id}`, { method: 'DELETE' });
+            loadTags();
+            showMessage(document.getElementById('tagMessage'), 'Tag deleted', 'success');
+          }
+        });
+      });
+      document.querySelectorAll('.editTagBtn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.dataset.id;
+          const newName = prompt('New name', btn.dataset.name);
+          if (!newName) return;
+          const newSlug = prompt('New slug', btn.dataset.slug);
+          if (!newSlug) return;
+          apiFetch(`/api/admin/tags/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify({ name: newName, slug: newSlug })
+          }).then(() => {
+            loadTags();
+            showMessage(document.getElementById('tagMessage'), 'Tag updated', 'success');
+          });
+        });
+      });
+    }
+
+    document.getElementById('createTagBtn')?.addEventListener('click', async () => {
+      const name = document.getElementById('tagName').value.trim();
+      const slug = document.getElementById('tagSlug').value.trim();
+      if (!name || !slug) return alert('Name and slug required');
+      const res = await apiFetch('/api/admin/tags', {
+        method: 'POST',
+        body: JSON.stringify({ name, slug })
+      });
+      if (res.ok) {
+        document.getElementById('tagName').value = '';
+        document.getElementById('tagSlug').value = '';
+        loadTags();
+        showMessage(document.getElementById('tagMessage'), 'Tag added', 'success');
+      } else {
+        showMessage(document.getElementById('tagMessage'), 'Error adding tag', 'error');
+      }
+    });
+
+    // --- Collections ---
+    async function loadCollections() {
+      const res = await apiFetch('/api/admin/collections');
+      const cols = await res.json();
+      const list = document.getElementById('colList');
+      if (!list) return;
+      if (!cols.length) { list.innerHTML = '<li>No collections yet.</li>'; return; }
+      list.innerHTML = '';
+      for (const col of cols) {
+        const li = document.createElement('li');
+        li.innerHTML = `
+          <span><strong>${escapeHtml(col.name)}</strong> (${escapeHtml(col.slug)}) ${col.description ? `– ${escapeHtml(col.description)}` : ''}</span>
+          <div class="item-actions">
+            <button class="btn btn-sm btn-ghost editColBtn" data-id="${col.id}" data-name="${escapeHtml(col.name)}" data-slug="${escapeHtml(col.slug)}" data-desc="${escapeHtml(col.description || '')}">✏️</button>
+            <button class="btn btn-sm btn-ghost deleteColBtn" data-id="${col.id}">🗑️</button>
+          </div>
+        `;
+        list.appendChild(li);
+      }
+      document.querySelectorAll('.deleteColBtn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const id = btn.dataset.id;
+          if (confirm('Delete collection?')) {
+            await apiFetch(`/api/admin/collections/${id}`, { method: 'DELETE' });
+            loadCollections();
+            showMessage(document.getElementById('colMessage'), 'Collection deleted', 'success');
+          }
+        });
+      });
+      document.querySelectorAll('.editColBtn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.dataset.id;
+          const newName = prompt('New name', btn.dataset.name);
+          if (!newName) return;
+          const newSlug = prompt('New slug', btn.dataset.slug);
+          if (!newSlug) return;
+          const newDesc = prompt('New description', btn.dataset.desc);
+          apiFetch(`/api/admin/collections/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify({ name: newName, slug: newSlug, description: newDesc || null })
+          }).then(() => {
+            loadCollections();
+            showMessage(document.getElementById('colMessage'), 'Collection updated', 'success');
+          });
+        });
+      });
+    }
+
+    document.getElementById('createColBtn')?.addEventListener('click', async () => {
+      const name = document.getElementById('colName').value.trim();
+      const slug = document.getElementById('colSlug').value.trim();
+      const description = document.getElementById('colDesc').value.trim();
+      if (!name || !slug) return alert('Name and slug required');
+      const res = await apiFetch('/api/admin/collections', {
+        method: 'POST',
+        body: JSON.stringify({ name, slug, description: description || null })
+      });
+      if (res.ok) {
+        document.getElementById('colName').value = '';
+        document.getElementById('colSlug').value = '';
+        document.getElementById('colDesc').value = '';
+        loadCollections();
+        showMessage(document.getElementById('colMessage'), 'Collection added', 'success');
+      } else {
+        showMessage(document.getElementById('colMessage'), 'Error adding collection', 'error');
+      }
+    });
+
+    function escapeHtml(str) {
+      return str.replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+      });
+    }
+
+    // Initial load
+    loadCategories();
+    loadTags();
+    loadCollections();
+  </script>
+</body>
+</html>
