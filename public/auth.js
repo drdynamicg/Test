@@ -28,3 +28,12 @@ async function updateUserUI() {
 }
 function escapeHtml(str) { return str.replace(/[&<>]/g, m => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' }[m])); }
 updateUserUI();
+
+console.log('auth.js loaded');
+setTimeout(() => {
+  const userArea = document.getElementById('userArea');
+  console.log('userArea found?', userArea);
+  if (userArea && userArea.innerHTML.trim() === '') {
+    userArea.innerHTML = '<a href="/auth/login" class="btn btn-ghost btn-sm">Login with Google</a>';
+  }
+}, 500);
