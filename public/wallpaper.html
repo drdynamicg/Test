@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,14 +7,13 @@
   <link rel="stylesheet" href="/global.css">
   <script>window.adsensePublisherId = 'ca-pub-XXXXXXXXXXXXXXXX';</script>
   <script src="/ads.js" defer></script>
+  <script src="/auth.js" defer></script>
 </head>
 <body>
   <nav class="nav">...</nav> <!-- same as index.html -->
   <div class="ad-header" id="headerAd"></div>
-  <script>insertAd('headerAd', 'HEADER_AD_SLOT', 'horizontal');</script>
   <div class="single-wallpaper" id="singleContent">Loading...</div>
   <div class="ad-footer" id="footerAd"></div>
-  <script>insertAd('footerAd', 'FOOTER_AD_SLOT', 'auto');</script>
   <footer class="site-footer">...</footer>
   <script>
     const params = new URLSearchParams(window.location.search);
@@ -23,9 +22,13 @@
       fetch(`/api/wallpapers/${slug}`)
         .then(res => res.json())
         .then(w => {
-          const resolutionClass = w.original_width >= 7680 ? 'badge-8k' : (w.original_width >= 3840 ? 'badge-4k' : (w.original_width >= 2560 ? 'badge-2k' : 'badge-1080p'));
+          const maxDim = Math.max(w.original_width, w.original_height);
+          const resolutionClass = maxDim >= 7680 ? 'badge-8k' :
+                                  maxDim >= 3840 ? 'badge-4k' :
+                                  maxDim >= 2560 ? 'badge-2k' : 'badge-1080p';
           const resolutionLabel = resolutionClass.split('-')[1].toUpperCase();
-          let html = `<div class="wall-badge wall-badge--inline ${resolutionClass}">${resolutionLabel}</div>
+          const html = `
+            <div class="wall-badge wall-badge--inline ${resolutionClass}">${resolutionLabel}</div>
             <h1>${escapeHtml(w.title)}</h1>
             <img class="wallpaper-full" src="/api/download/${w.id}/4k" alt="${escapeHtml(w.title)}">
             <div class="dl-section">
@@ -38,11 +41,13 @@
                 <a href="/api/download/${w.id}/original" class="dl-card dl-card-original"><div class="dl-res">Original</div><div class="dl-dim">Full Resolution</div></a>
               </div>
             </div>
-            <div class="wallpaper-meta-info">${w.categories.map(c => `<div class="meta-row"><strong>Category:</strong> <a href="/?cat=${c.slug}">${escapeHtml(c.name)}</a></div>`).join('')}
-            ${w.tags.length ? `<div class="meta-row"><strong>Tags:</strong> ${w.tags.map(t => `<a href="/?tag=${t.slug}">${escapeHtml(t.name)}</a>`).join(', ')}</div>` : ''}</div>
-            <button class="btn btn-ghost report-btn" id="reportBtn">🚨 Report this wallpaper</button>`;
+            <div class="wallpaper-meta-info">
+              ${w.categories.map(c => `<div class="meta-row"><strong>Category:</strong> <a href="/?cat=${c.slug}">${escapeHtml(c.name)}</a></div>`).join('')}
+              ${w.tags.length ? `<div class="meta-row"><strong>Tags:</strong> ${w.tags.map(t => `<a href="/?tag=${t.slug}">${escapeHtml(t.name)}</a>`).join(', ')}</div>` : ''}
+            </div>
+            <button class="btn btn-ghost report-btn" id="reportBtn">🚨 Report this wallpaper</button>
+          `;
           document.getElementById('singleContent').innerHTML = html;
-          // Download links with signed URLs
           document.querySelectorAll('.dl-card[data-size]').forEach(btn => {
             btn.addEventListener('click', async (e) => {
               e.preventDefault();
@@ -52,10 +57,12 @@
               window.location.href = data.url;
             });
           });
-          // Report modal (reuse from original)
+          // Report modal logic (same as original)
         });
     }
-    function escapeHtml(str) { /* same as before */ }
+    function escapeHtml(str) {
+      return str.replace(/[&<>]/g, m => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' }[m]));
+    }
   </script>
 </body>
 </html>

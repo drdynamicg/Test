@@ -25,15 +25,22 @@
     <div id="uploadContent">Loading...</div>
   </div>
   <div class="ad-footer" id="footerAd"></div>
-  <footer class="site-footer">...</footer>
-
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-links">
+        <a href="/privacy.html">Privacy Policy</a>
+        <a href="/terms.html">Terms of Service</a>
+        <a href="/copyright.html">Copyright</a>
+        <a href="/contact.html">Contact Us</a>
+      </div>
+      <div class="footer-copyright">&copy; 2025 AniWall. All wallpapers are property of their respective owners.</div>
+    </div>
+  </footer>
   <script>
     (async function() {
-      // Wait for auth check
       await new Promise(resolve => setTimeout(resolve, 200));
       const res = await fetch('/api/me');
       const user = await res.json();
-
       const uploadDiv = document.getElementById('uploadContent');
       if (!user.authenticated) {
         uploadDiv.innerHTML = `
@@ -44,25 +51,21 @@
         `;
         return;
       }
-
-      // User is logged in – show upload form
       uploadDiv.innerHTML = `
         <h2>Submit a Wallpaper</h2>
         <p>Logged in as <strong>${escapeHtml(user.name)}</strong> (${user.email})</p>
         <form id="uploadForm" enctype="multipart/form-data">
           <div class="form-group">
-            <label>Image (min 1080p, max 50MB)</label>
+            <label>Image (min 1080p: 1920×1080 landscape OR 1080×1920 portrait)</label>
             <input type="file" name="image" accept="image/jpeg,image/png,image/webp" required>
           </div>
           <button type="submit" class="btn btn-accent">Submit for Review</button>
         </form>
         <div id="uploadResult"></div>
       `;
-
       document.getElementById('uploadForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         const fd = new FormData(e.target);
-        // Do NOT include email/name fields – backend will use session.
         const submitRes = await fetch('/api/upload', { method: 'POST', body: fd });
         const data = await submitRes.json();
         const resultDiv = document.getElementById('uploadResult');
@@ -74,7 +77,6 @@
         }
       });
     })();
-
     function escapeHtml(str) {
       return str.replace(/[&<>]/g, m => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' }[m]));
     }

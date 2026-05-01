@@ -36,9 +36,10 @@ async function loadWallpapers(reset = false) {
 
 function renderCards(wallpapers, isFirstPage = false) {
   for (const w of wallpapers) {
-    const resolutionClass = w.original_width >= 7680 ? 'badge-8k' :
-                            w.original_width >= 3840 ? 'badge-4k' :
-                            w.original_width >= 2560 ? 'badge-2k' : 'badge-1080p';
+    const maxDimension = Math.max(w.original_width, w.original_height);
+    const resolutionClass = maxDimension >= 7680 ? 'badge-8k' :
+                            maxDimension >= 3840 ? 'badge-4k' :
+                            maxDimension >= 2560 ? 'badge-2k' : 'badge-1080p';
     const resolutionLabel = resolutionClass.split('-')[1].toUpperCase();
     const html = `
       <a href="/wallpaper.html?slug=${w.slug}" class="wall-item-link">
