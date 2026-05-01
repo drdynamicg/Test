@@ -1,21 +1,88 @@
 <!DOCTYPE html>
-<html>
-<head> ... same meta, global.css, ads.js ... </head>
-<body>
-  <nav class="nav">
-    <div class="nav-brand"><a href="/">Ani<span>Wall</span></a></div>
-    <div class="nav-cats" id="navCats"></div>
-    <div class="nav-right">
-      <div class="search-wrap">...</div>
-      <div id="userArea"></div>
-    </div>
-  </nav>
-  <div class="global-filters">...</div>
-  <div class="ad-header" id="headerAd"></div>
-  <div class="wall-container"><div class="wall-masonry" id="wallGrid"></div><div class="load-more"><button id="loadMoreBtn">Load more</button></div></div>
-  <div class="ad-footer" id="footerAd"></div>
-  <footer class="site-footer">...</footer>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>AniWall – Anime Wallpapers</title>
+  <link rel="stylesheet" href="/global.css">
+  <!-- AdSense configuration (replace with your own IDs) -->
+  <script>window.adsensePublisherId = 'ca-pub-XXXXXXXXXXXXXXXX';</script>
+  <script src="/ads.js" defer></script>
   <script src="/auth.js" defer></script>
-  <script src="/script.js" defer></script>
+</head>
+<body>
+
+<!-- ========== NAVIGATION ========== -->
+<nav class="nav">
+  <div class="nav-brand">
+    <a href="/">Ani<span>Wall</span></a>
+  </div>
+  <div class="nav-cats" id="navCats">
+    <!-- Categories will be loaded dynamically from /api/categories -->
+    <span class="nav-cat active" data-cat="all">All</span>
+  </div>
+  <div class="nav-right">
+    <div class="search-wrap">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <circle cx="11" cy="11" r="8"/>
+        <path d="m21 21-4.35-4.35"/>
+      </svg>
+      <form action="/search.html" method="get">
+        <input type="search" class="search-input" name="q" placeholder="Search all wallpapers..." autocomplete="off">
+      </form>
+    </div>
+    <div id="userArea"></div>
+  </div>
+</nav>
+
+<!-- ========== GLOBAL FILTERS (TABS & POPULAR TAGS) ========== -->
+<div class="global-filters">
+  <div class="filter-tabs">
+    <button class="filter-tab active" data-sort="recent">RECENT</button>
+    <button class="filter-tab" data-sort="popular">POPULAR</button>
+    <button class="filter-tab" data-sort="random">RANDOM</button>
+    <!-- Collections tab is shown only if collections exist (handled by CSS/JS, but we keep it for now) -->
+    <button class="filter-tab" data-sort="collections">COLLECTIONS</button>
+  </div>
+  <div class="popular-tags" id="popularTags">
+    <!-- Will be populated from /api/tags -->
+    <span class="tags-label">Popular tags:</span>
+    <span class="no-tags">Loading...</span>
+  </div>
+</div>
+
+<!-- ========== TOP AD (OPTIONAL) ========== -->
+<div class="ad-header" id="headerAd"></div>
+<script>if(window.insertAd) insertAd('headerAd', 'HEADER_AD_SLOT', 'horizontal');</script>
+
+<!-- ========== MAIN WALLPAPER GRID ========== -->
+<div class="wall-container">
+  <div class="wall-masonry" id="wallGrid"></div>
+  <div class="load-more">
+    <button class="btn btn-ghost" id="loadMoreBtn">Load more wallpapers</button>
+  </div>
+</div>
+
+<!-- ========== FOOTER AD ========== -->
+<div class="ad-footer" id="footerAd"></div>
+<script>if(window.insertAd) insertAd('footerAd', 'FOOTER_AD_SLOT', 'auto');</script>
+
+<!-- ========== FOOTER ========== -->
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-links">
+      <a href="/privacy.html">Privacy Policy</a>
+      <a href="/terms.html">Terms of Service</a>
+      <a href="/copyright.html">Copyright</a>
+      <a href="/contact.html">Contact Us</a>
+    </div>
+    <div class="footer-copyright">
+      &copy; 2025 AniWall. All wallpapers are property of their respective owners.
+    </div>
+  </div>
+</footer>
+
+<!-- ========== SCRIPTS ========== -->
+<script src="/script.js" defer></script>
 </body>
 </html>
